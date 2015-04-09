@@ -134,19 +134,23 @@ func (b *Bridge) add(containerId string, quiet bool) {
 
 	ports := make(map[string]ServicePort)
 
-	// Extract configured host port mappings, relevant when using --net=host
-	for port, published := range container.HostConfig.PortBindings {
-		ports[string(port)] = servicePort(container, port, published)
-	}
+	if b.config.IpOnly == true {
+		ports["0"] = unpublishedServicePort(container)
+	} else {
+		// Extract configured host port mappings, relevant when using --net=host
+		for port, published := range container.HostConfig.PortBindings {
+			ports[string(port)] = servicePort(container, port, published)
+		}
 
-	// Extract runtime port mappings, relevant when using --net=bridge
-	for port, published := range container.NetworkSettings.Ports {
-		ports[string(port)] = servicePort(container, port, published)
-	}
+		// Extract runtime port mappings, relevant when using --net=bridge
+		for port, published := range container.NetworkSettings.Ports {
+			ports[string(port)] = servicePort(container, port, published)
+		}
 
-	if len(ports) == 0 && !quiet {
-		log.Println("ignored:", container.ID[:12], "no published ports")
-		return
+		if len(ports) == 0 && !quiet {
+			log.Println("ignored:", container.ID[:12], "no published ports")
+			return
+		}
 	}
 
 	for _, port := range ports {
@@ -209,7 +213,7 @@ func (b *Bridge) newService(port ServicePort, isgroup bool) *Service {
 	service.ID = hostname + ":" + container.Name[1:] + ":" + port.ExposedPort
 	service.Name = mapDefault(metadata, "name", defaultName)
 	var p int
-	if b.config.Internal == true {
+	if b.config.Internal == true || b.config.IpOnly {
 		service.IP = port.ExposedIP
 		p, _ = strconv.Atoi(port.ExposedPort)
 	} else {

@@ -72,3 +72,16 @@ func servicePort(container *dockerapi.Container, port dockerapi.Port, published 
 		container:         container,
 	}
 }
+
+func unpublishedServicePort(container *dockerapi.Container) ServicePort {
+	return ServicePort{
+		HostPort:          "0",
+		HostIP:            "0.0.0.0",
+		ExposedPort:       "0",
+		ExposedIP:         container.NetworkSettings.IPAddress,
+		PortType:          "tcp",
+		ContainerID:       container.ID,
+		ContainerHostname: container.Config.Hostname,
+		container:         container,
+	}
+}
